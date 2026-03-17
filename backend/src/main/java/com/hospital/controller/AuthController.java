@@ -1,7 +1,10 @@
 package com.hospital.controller;
 
 import com.hospital.dto.AuthDTOs;
+import com.hospital.model.Doctor;
 import com.hospital.model.User;
+import com.hospital.repository.DepartmentRepository;
+import com.hospital.repository.DoctorRepository;
 import com.hospital.repository.UserRepository;
 import com.hospital.security.JwtUtils;
 import jakarta.validation.Valid;
@@ -14,6 +17,9 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -25,6 +31,8 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtils jwtUtils;
+    private final DepartmentRepository departmentRepository;
+    private final DoctorRepository doctorRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@Valid @RequestBody AuthDTOs.RegisterRequest request) {
@@ -106,5 +114,77 @@ public class AuthController {
 
         userRepository.save(user);
         return ResponseEntity.ok(Map.of("message", "Profile updated successfully"));
+    }
+
+    // ── Doctor self-registration ──────────────────────────────────────────
+    @PostMapping("/register-doctor")
+    public ResponseEntity<?> registerDoctor(@RequestBody Map<String, Object> request) {
+        String email = (String) request.get("email");
+        if (email == null || userRepository.existsByEmail(email)) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Email already registered or invalid"));
+        }
+
+        // 1. Create User account with DOCTOR role
+        User user = new User();
+        user.setFirstName((String) request.get("firstName"));
+        user.setLastName((String) request.get("lastName"));
+        user.setEmail(email);
+        user.setPassword(passwordEncoder.encode((String) request.get("password")));
+        user.setPhone((String) request.get("phone"));
+        user.setRole(User.Role.DOCTOR);
+        User savedUser = userRepository.save(user);
+
+        // 2. Create Doctor profile
+        Doctor doctor = new Doctor();
+        doctor.setUserId(savedUser.getId());
+        doctor.setFirstName(savedUser.getFirstName());
+        doctor.setLastName(savedUser.getLastName());
+        doctor.setEmail(savedUser.getEmail());
+        doctor.setPhone(savedUser.getPhone());
+        doctor.setSpecialization((String) request.get("specialization"));
+        doctor.setQualification((String) request.get("qualification"));
+        doctor.setBio((String) request.get("bio"));
+
+        Object exp = request.get("experienceYears");
+        if (exp != null) doctor.setExperienceYears(Integer.parseInt(exp.toString()));
+
+        String deptId = (String) request.get("departmentId");
+        if (deptId != null && !deptId.isEmpty()) {
+            doctor.setDepartmentId(deptId);
+            departmentRepository.findById(deptId)
+                .ifPresent(dept -> doctor.setDepartmentName(dept.getName()));
+        }
+
+        // Default Mon–Fri 9am–5pm schedule
+        Map<String, List<String>> defaultSchedule = new HashMap<>();
+        List<String> workingHours = generateDefaultSlots("09:00", "17:00", 30);
+        for (String day : new String[]{"MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"}) {
+            defaultSchedule.put(day, workingHours);
+        }
+        doctor.setWeeklySchedule(defaultSchedule);
+        doctor.setSlotDurationMinutes(30);
+        doctor.setConsultationFee(500.0);
+        doctor.setActive(true);
+
+        doctorRepository.save(doctor);
+
+        // 3. Issue JWT
+        String token = jwtUtils.generateToken(savedUser.getEmail(), savedUser.getRole().name());
+        return ResponseEntity.ok(new AuthDTOs.AuthResponse(
+            token, savedUser.getId(), savedUser.getEmail(),
+            savedUser.getFullName(), savedUser.getRole().name()
+        ));
+    }
+
+    private List<String> generateDefaultSlots(String start, String end, int duration) {
+        List<String> slots = new ArrayList<>();
+        String[] sp = start.split(":");
+        String[] ep = end.split(":");
+        int s = Integer.parseInt(sp[0]) * 60 + Integer.parseInt(sp[1]);
+        int e = Integer.parseInt(ep[0]) * 60 + Integer.parseInt(ep[1]);
+        for (int m = s; m < e; m += duration) {
+            slots.add(String.format("%02d:%02d", m / 60, m % 60));
+        }
+        return slots;
     }
 }

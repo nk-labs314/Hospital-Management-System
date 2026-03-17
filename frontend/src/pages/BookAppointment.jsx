@@ -2,167 +2,125 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
-import { departmentAPI, doctorAPI, appointmentAPI } from '../services/api';
+import { deptAPI, apptAPI } from '../services/api';
 
 const STEPS = ['Speciality', 'Doctor', 'Date & Slot', 'Confirm'];
 
 export default function BookAppointment() {
   const { user } = useAuth();
   const navigate = useNavigate();
-
   const [step, setStep] = useState(0);
-  const [departments, setDepartments] = useState([]);
+  const [depts, setDepts] = useState([]);
   const [doctors, setDoctors] = useState([]);
-  const [slots, setSlots] = useState({ availableSlots: [], bookedSlots: [], nextAvailableDates: [] });
+  const [slots, setSlots] = useState({ availableSlots:[], bookedSlots:[], nextAvailableDates:[] });
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState(false);
+  const [sel, setSel] = useState({ dept:null, doctor:null, date:today(), slot:null, reason:'', symptoms:'' });
+  const [alts, setAlts] = useState(null);
 
-  const [selected, setSelected] = useState({
-    department: null, doctor: null,
-    date: new Date().toISOString().split('T')[0],
-    slot: null, reason: '', symptoms: ''
-  });
+  useEffect(() => { deptAPI.getAll().then(r => setDepts(r.data)); }, []);
 
-  const [alternatives, setAlternatives] = useState(null); // shown when slot unavailable
-
-  useEffect(() => {
-    departmentAPI.getAll().then(r => setDepartments(r.data));
-  }, []);
-
-  const selectDept = async (dept) => {
-    setSelected(s => ({...s, department: dept, doctor: null, slot: null}));
+  const selectDept = async (d) => {
+    setSel(s => ({...s, dept:d, doctor:null, slot:null}));
     setLoading(true);
-    try {
-      const { data } = await departmentAPI.getDoctors(dept.id);
-      setDoctors(data);
-    } finally {
-      setLoading(false);
-    }
-    setStep(1);
+    const { data } = await deptAPI.getDoctors(d.id);
+    setDoctors(data); setLoading(false); setStep(1);
   };
 
   const selectDoctor = async (doc) => {
-    setSelected(s => ({...s, doctor: doc, slot: null}));
-    setStep(2);
-    loadSlots(doc.id, selected.date);
+    setSel(s => ({...s, doctor:doc, slot:null}));
+    loadSlots(doc.id, sel.date); setStep(2);
   };
 
-  const loadSlots = async (doctorId, date) => {
+  const loadSlots = async (docId, date) => {
     setLoading(true);
-    try {
-      const { data } = await appointmentAPI.getSlots(doctorId, date);
-      setSlots(data);
-    } finally {
-      setLoading(false);
-    }
+    const { data } = await apptAPI.getSlots(docId, date);
+    setSlots(data); setLoading(false);
   };
 
-  const handleDateChange = (date) => {
-    setSelected(s => ({...s, date, slot: null}));
-    if (selected.doctor) loadSlots(selected.doctor.id, date);
+  const handleDate = (date) => {
+    setSel(s => ({...s, date, slot:null}));
+    if (sel.doctor) loadSlots(sel.doctor.id, date);
   };
 
   const handleBook = async () => {
-    if (!selected.reason.trim()) { toast.error('Please enter reason for visit'); return; }
+    if (!sel.reason.trim()) { toast.error('Please enter a reason for visit'); return; }
     setBooking(true);
     try {
-      const { data } = await appointmentAPI.book({
-        patientId: user.id,
-        doctorId: selected.doctor.id,
-        appointmentDate: selected.date,
-        timeSlot: selected.slot,
-        reasonForVisit: selected.reason,
-        symptoms: selected.symptoms,
+      const { data } = await apptAPI.book({
+        patientId: user.id, doctorId: sel.doctor.id,
+        appointmentDate: sel.date, timeSlot: sel.slot,
+        reasonForVisit: sel.reason, symptoms: sel.symptoms,
       });
-
       if (data.booked) {
-        toast.success(`🎉 Appointment confirmed! Token #${data.tokenNumber}`);
+        toast.success(`🎉 Booked! Your token is #${data.tokenNumber}`);
         navigate('/appointments');
       } else {
-        // Slot taken — show alternatives
-        setAlternatives(data);
-        toast.error('That slot just got taken! Check alternatives below.');
+        setAlts(data);
+        toast.error('Slot just got taken! Alternatives shown below.');
       }
-    } catch (err) {
-      toast.error('Booking failed. Please try again.');
-    } finally {
-      setBooking(false);
-    }
+    } catch { toast.error('Booking failed'); }
+    finally { setBooking(false); }
   };
-
-  const pickAlternativeSlot = (date, slot) => {
-    setSelected(s => ({...s, date, slot}));
-    setAlternatives(null);
-    loadSlots(selected.doctor.id, date);
-  };
-
-  // Today minimum date
-  const today = new Date().toISOString().split('T')[0];
 
   return (
     <div>
-      <div className="page-header">
-        <h1>Book Appointment</h1>
-        <p>Find the right doctor and secure your slot</p>
+      <div className="page-header anim-up">
+        <div className="page-title">Book Appointment</div>
+        <div className="page-sub">Find a specialist and secure your slot in minutes</div>
       </div>
 
-      {/* Steps bar */}
-      <div className="steps-bar">
-        {STEPS.map((label, i) => (
-          <React.Fragment key={label}>
-            <div className={`step ${i < step ? 'done' : i === step ? 'active' : ''}`}>
-              <div className="step-dot">{i < step ? '✓' : i + 1}</div>
-              <span className="step-label">{label}</span>
+      {/* Steps */}
+      <div className="steps-bar anim-up d100">
+        {STEPS.map((lbl, i) => (
+          <React.Fragment key={lbl}>
+            <div className={`step ${i<step?'done':i===step?'active':''}`}>
+              <div className="step-num">{i<step?'✓':i+1}</div>
+              <span className="step-lbl">{lbl}</span>
             </div>
-            {i < STEPS.length - 1 && <div className={`step-line ${i < step ? 'done' : ''}`} />}
+            {i<STEPS.length-1 && <div className={`step-line ${i<step?'done':''}`} />}
           </React.Fragment>
         ))}
       </div>
 
-      {/* Step 0: Speciality */}
-      {step === 0 && (
-        <div className="card">
-          <h3 className="section-title">Choose a Speciality</h3>
+      {/* Step 0 */}
+      {step===0 && (
+        <div className="card anim-up d200">
+          <div className="section-title">Choose a Speciality</div>
           <div className="dept-grid">
-            {departments.map(dept => (
-              <div key={dept.id} className="dept-card" onClick={() => selectDept(dept)}>
-                <div className="dept-icon">{dept.icon}</div>
-                <div className="dept-name">{dept.name}</div>
+            {depts.map(d => (
+              <div key={d.id} className={`dept-tile ${sel.dept?.id===d.id?'selected':''}`} onClick={()=>selectDept(d)}>
+                <div className="dept-emoji">{d.icon}</div>
+                <div className="dept-name">{d.name}</div>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* Step 1: Doctor */}
-      {step === 1 && (
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Select a Doctor</h3>
-            <button className="btn btn-ghost btn-sm" onClick={() => setStep(0)}>← Back</button>
+      {/* Step 1 */}
+      {step===1 && (
+        <div className="card anim-up d200">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+            <div className="section-title" style={{ marginBottom:0 }}>Select a Doctor</div>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(0)}>← Back</button>
           </div>
-          <p style={{fontSize:13, color:'var(--gray-700)', marginBottom:16}}>
-            Department: <strong>{selected.department?.name}</strong>
-          </p>
-          {loading ? <p>Loading doctors...</p> :
-           doctors.length === 0 ? <p>No doctors available in this department.</p> : (
-            <div style={{display:'flex', flexDirection:'column', gap:10}}>
+          <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:16 }}>
+            Department: <span style={{ color:'var(--teal)', fontWeight:600 }}>{sel.dept?.name}</span>
+          </div>
+          {loading ? <p style={{ color:'var(--text-muted)' }}>Loading doctors...</p> :
+          doctors.length===0 ? <p style={{ color:'var(--text-muted)' }}>No doctors in this department.</p> : (
+            <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
               {doctors.map(doc => (
-                <div key={doc.id}
-                  className={`doctor-card ${selected.doctor?.id === doc.id ? 'selected' : ''}`}
-                  onClick={() => selectDoctor(doc)}>
-                  <div className="doctor-avatar">
-                    {doc.firstName[0]}{doc.lastName[0]}
+                <div key={doc.id} className={`doctor-tile ${sel.doctor?.id===doc.id?'selected':''}`} onClick={()=>selectDoctor(doc)}>
+                  <div className="doc-avatar">{doc.firstName[0]}{doc.lastName[0]}</div>
+                  <div style={{ flex:1 }}>
+                    <div className="doc-name">Dr. {doc.firstName} {doc.lastName}</div>
+                    <div className="doc-spec">{doc.specialization} · {doc.qualification}</div>
+                    <div className="doc-exp">{doc.experienceYears} yrs experience</div>
+                    <div className="doc-fee">₹{doc.consultationFee} / visit</div>
                   </div>
-                  <div className="doctor-info" style={{flex:1}}>
-                    <h4>{doc.firstName} {doc.lastName}</h4>
-                    <p>{doc.specialization} · {doc.qualification}</p>
-                    <p>{doc.experienceYears} years experience</p>
-                    <div className="doctor-fee">₹{doc.consultationFee} consultation fee</div>
-                  </div>
-                  <div style={{fontSize:13, color:'var(--gray-500)'}}>
-                    ⭐ {doc.rating > 0 ? doc.rating.toFixed(1) : 'New'}
-                  </div>
+                  {sel.doctor?.id===doc.id && <div style={{ color:'var(--teal)', fontSize:18 }}>✓</div>}
                 </div>
               ))}
             </div>
@@ -170,111 +128,95 @@ export default function BookAppointment() {
         </div>
       )}
 
-      {/* Step 2: Date & Slot */}
-      {step === 2 && (
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Pick a Date & Time Slot</h3>
-            <button className="btn btn-ghost btn-sm" onClick={() => setStep(1)}>← Back</button>
+      {/* Step 2 */}
+      {step===2 && (
+        <div className="card anim-up d200">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+            <div className="section-title" style={{ marginBottom:0 }}>Pick a Date & Slot</div>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(1)}>← Back</button>
           </div>
-
-          <div className="form-grid" style={{marginBottom:20}}>
+          <div className="form-grid" style={{ marginBottom:20 }}>
             <div className="form-group">
               <label className="form-label">Select Date</label>
-              <input className="form-control" type="date" min={today}
-                value={selected.date} onChange={e => handleDateChange(e.target.value)} />
+              <input className="form-control" type="date" min={today()} value={sel.date} onChange={e=>handleDate(e.target.value)} />
             </div>
-            <div style={{display:'flex', flexDirection:'column', justifyContent:'flex-end', paddingBottom:18}}>
-              <p style={{fontSize:13, color:'var(--gray-700)'}}>
-                Doctor: <strong>{selected.doctor?.firstName} {selected.doctor?.lastName}</strong><br/>
-                Fee: <strong>₹{selected.doctor?.consultationFee}</strong>
-              </p>
+            <div style={{ display:'flex', flexDirection:'column', justifyContent:'flex-end', paddingBottom:18 }}>
+              <div style={{ fontSize:13, color:'var(--text-secondary)' }}>
+                <div>Dr. {sel.doctor?.firstName} {sel.doctor?.lastName}</div>
+                <div style={{ color:'var(--teal)', fontWeight:700, marginTop:3 }}>₹{sel.doctor?.consultationFee}</div>
+              </div>
             </div>
           </div>
 
-          {loading ? <p>Loading available slots...</p> : (
-            <>
-              {slots.availableSlots.length === 0 ? (
-                <div className="alert alert-info">
-                  No slots available on this date.
-                  {slots.nextAvailableDates?.length > 0 && (
-                    <div style={{marginTop:10}}>
-                      <strong>Next available dates:</strong>
-                      <div style={{display:'flex', gap:8, flexWrap:'wrap', marginTop:8}}>
-                        {slots.nextAvailableDates.map(d => (
-                          <button key={d.date} className="btn btn-outline btn-sm"
-                            onClick={() => handleDateChange(d.date)}>
-                            {d.dayOfWeek.slice(0,3)}, {d.date} ({d.availableSlotCount} slots)
-                          </button>
-                        ))}
-                      </div>
+          {loading ? <p style={{ color:'var(--text-muted)' }}>Checking availability...</p> : (
+            slots.availableSlots.length===0 ? (
+              <div>
+                <div className="alert alert-warning">No slots available on this date.</div>
+                {slots.nextAvailableDates?.length>0 && (
+                  <div>
+                    <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, fontWeight:600 }}>NEXT AVAILABLE</div>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                      {slots.nextAvailableDates.map(d=>(
+                        <button key={d.date} className="btn btn-outline btn-sm" onClick={()=>handleDate(d.date)}>
+                          {d.dayOfWeek.slice(0,3)}, {d.date} ({d.availableSlotCount} slots)
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <p className="section-title">
-                    Available Slots
-                    <span style={{fontSize:13, fontWeight:400, color:'var(--gray-500)', marginLeft:8}}>
-                      ({slots.availableSlots.length} available)
-                    </span>
-                  </p>
-                  <div className="slots-grid">
-                    {/* Show all slots: booked greyed, available clickable */}
-                    {[...slots.availableSlots, ...slots.bookedSlots]
-                      .sort()
-                      .map(slot => {
-                        const isBooked = slots.bookedSlots.includes(slot);
-                        return (
-                          <button key={slot}
-                            className={`slot-btn ${isBooked ? 'booked' : selected.slot === slot ? 'selected' : ''}`}
-                            onClick={() => !isBooked && setSelected(s => ({...s, slot}))}
-                            disabled={isBooked}>
-                            {slot}{isBooked ? ' 🔴' : ''}
-                          </button>
-                        );
-                      })}
                   </div>
-                </>
-              )}
-            </>
+                )}
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize:12, color:'var(--text-muted)', marginBottom:10, fontWeight:600 }}>
+                  AVAILABLE — {slots.availableSlots.length} SLOTS
+                </div>
+                <div className="slots-grid">
+                  {[...new Set([...slots.availableSlots, ...slots.bookedSlots])].sort().map(slot => {
+                    const booked = slots.bookedSlots.includes(slot);
+                    return (
+                      <button key={slot} className={`slot-pill ${booked?'booked':sel.slot===slot?'selected':''}`}
+                        onClick={()=>!booked&&setSel(s=>({...s,slot}))} disabled={booked}>
+                        {slot}
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )
           )}
 
-          {selected.slot && (
-            <div style={{marginTop:20}}>
-              <div className="alert alert-success">
-                ✅ Selected: <strong>{selected.slot}</strong> on <strong>{selected.date}</strong>
+          {sel.slot && (
+            <div style={{ marginTop:20 }}>
+              <div className="alert alert-success" style={{ marginBottom:16 }}>
+                ✅ Selected: <strong>{sel.slot}</strong> on <strong>{sel.date}</strong>
               </div>
-              <button className="btn btn-primary" onClick={() => setStep(3)}>
-                Continue →
-              </button>
+              <button className="btn btn-primary" onClick={()=>setStep(3)}>Continue →</button>
             </div>
           )}
         </div>
       )}
 
-      {/* Step 3: Confirm */}
-      {step === 3 && (
-        <div className="card">
-          <div className="card-header">
-            <h3 className="card-title">Confirm Appointment</h3>
-            <button className="btn btn-ghost btn-sm" onClick={() => setStep(2)}>← Back</button>
+      {/* Step 3 */}
+      {step===3 && (
+        <div className="card anim-up d200">
+          <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20 }}>
+            <div className="section-title" style={{ marginBottom:0 }}>Confirm Appointment</div>
+            <button className="btn btn-ghost btn-sm" onClick={()=>setStep(2)}>← Back</button>
           </div>
 
-          {/* Summary */}
-          <div style={{background:'var(--gray-50)', borderRadius:'var(--radius-md)', padding:20, marginBottom:20}}>
-            <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 24px', fontSize:14}}>
+          <div style={{ background:'var(--bg-elevated)', border:'1px solid var(--border)', borderRadius:'var(--r-md)', padding:20, marginBottom:20 }}>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 24px' }}>
               {[
-                ['Department', selected.department?.name],
-                ['Doctor', `${selected.doctor?.firstName} ${selected.doctor?.lastName}`],
-                ['Specialization', selected.doctor?.specialization],
-                ['Date', selected.date],
-                ['Time Slot', selected.slot],
-                ['Consultation Fee', `₹${selected.doctor?.consultationFee}`],
+                ['Department', sel.dept?.name],
+                ['Doctor', `Dr. ${sel.doctor?.firstName} ${sel.doctor?.lastName}`],
+                ['Specialization', sel.doctor?.specialization],
+                ['Date', sel.date],
+                ['Time Slot', sel.slot],
+                ['Fee', `₹${sel.doctor?.consultationFee}`],
               ].map(([k,v]) => (
                 <div key={k}>
-                  <span style={{color:'var(--gray-500)', fontSize:12}}>{k}</span>
-                  <div style={{fontWeight:600}}>{v}</div>
+                  <div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:3 }}>{k}</div>
+                  <div style={{ fontSize:13, fontWeight:600, color:'var(--text-secondary)' }}>{v}</div>
                 </div>
               ))}
             </div>
@@ -282,46 +224,38 @@ export default function BookAppointment() {
 
           <div className="form-group">
             <label className="form-label">Reason for Visit *</label>
-            <input className="form-control" placeholder="e.g. Chest pain, Routine checkup..."
-              value={selected.reason} onChange={e => setSelected(s => ({...s, reason: e.target.value}))} />
+            <input className="form-control" placeholder="e.g. Chest pain, routine check-up..."
+              value={sel.reason} onChange={e=>setSel(s=>({...s,reason:e.target.value}))} />
           </div>
           <div className="form-group">
             <label className="form-label">Symptoms (optional)</label>
-            <textarea className="form-control" rows={3}
-              placeholder="Describe your symptoms..."
-              value={selected.symptoms} onChange={e => setSelected(s => ({...s, symptoms: e.target.value}))} />
+            <textarea className="form-control" rows={3} placeholder="Describe your symptoms..."
+              value={sel.symptoms} onChange={e=>setSel(s=>({...s,symptoms:e.target.value}))} />
+          </div>
+          <div className="alert alert-info" style={{ marginBottom:16 }}>
+            📧 Confirmation email will be sent to <strong>{user.email}</strong>
           </div>
 
-          <div className="alert alert-info" style={{marginBottom:16}}>
-            📧 A confirmation email will be sent to <strong>{user.email}</strong>
-          </div>
-
-          {alternatives && (
-            <div className="alert alert-danger" style={{marginBottom:16}}>
-              <strong>⚠️ Slot just got taken!</strong> Here are alternatives:
-              <div style={{marginTop:10, display:'flex', flexWrap:'wrap', gap:8}}>
-                {alternatives.sameDayAlternatives?.map(s => (
-                  <button key={s} className="btn btn-outline btn-sm"
-                    onClick={() => pickAlternativeSlot(selected.date, s)}>
+          {alts && (
+            <div className="alert alert-warning" style={{ marginBottom:16 }}>
+              <strong>⚠ Slot just got taken!</strong> Pick an alternative:
+              <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:10 }}>
+                {alts.sameDayAlternatives?.map(s=>(
+                  <button key={s} className="btn btn-outline btn-sm" onClick={()=>{ setSel(p=>({...p,slot:s})); setAlts(null); }}>
                     {s} (same day)
-                  </button>
-                ))}
-                {alternatives.nextAvailableDates?.slice(0,3).map(d => (
-                  <button key={d.date} className="btn btn-ghost btn-sm"
-                    onClick={() => { setStep(2); handleDateChange(d.date); }}>
-                    {d.date} ({d.firstSlot})
                   </button>
                 ))}
               </div>
             </div>
           )}
 
-          <button className="btn btn-success" style={{padding:'12px 28px'}}
-            onClick={handleBook} disabled={booking}>
-            {booking ? <><span className="spinner" /> Booking...</> : '✅ Confirm Appointment'}
+          <button className="btn btn-primary btn-lg" onClick={handleBook} disabled={booking}>
+            {booking ? <><span className="spinner" style={{borderTopColor:'var(--bg-base)'}} /> Booking...</> : '✓ Confirm Appointment'}
           </button>
         </div>
       )}
     </div>
   );
 }
+
+function today() { return new Date().toISOString().split('T')[0]; }

@@ -1,6 +1,6 @@
 {
-  "name": "hospital-management-frontend",
-  "version": "1.0.0",
+  "name": "medicare-hms",
+  "version": "2.0.0",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
@@ -8,7 +8,6 @@
     "react-router-dom": "^6.20.0",
     "axios": "^1.6.0",
     "react-hot-toast": "^2.4.1",
-    "date-fns": "^2.30.0",
     "react-scripts": "5.0.1"
   },
   "scripts": {
@@ -16,8 +15,8 @@
     "build": "react-scripts build"
   },
   "browserslist": {
-    "production": [">0.2%", "not dead", "not op_mini all"],
-    "development": ["last 1 chrome version", "last 1 firefox version"]
+    "production": [">0.2%", "not dead"],
+    "development": ["last 1 chrome version"]
   },
   "proxy": "http://localhost:8080"
 }
