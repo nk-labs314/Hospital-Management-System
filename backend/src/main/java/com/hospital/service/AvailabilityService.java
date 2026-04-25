@@ -27,7 +27,7 @@ public class AvailabilityService {
      */
     public List<String> getAvailableSlots(String doctorId, LocalDate date) {
         Doctor doctor = doctorRepository.findById(doctorId)
-            .orElseThrow(() -> new RuntimeException("Doctor not found"));
+                .orElseThrow(() -> new RuntimeException("Doctor not found"));
 
         // Check if doctor is on leave
         if (doctor.getLeaveDates() != null && doctor.getLeaveDates().contains(date.toString())) {
@@ -45,20 +45,20 @@ public class AvailabilityService {
 
         // Get already-booked slots for this date
         Set<String> bookedSlots = appointmentRepository
-            .findByDoctorIdAndAppointmentDate(doctorId, date)
-            .stream()
-            .filter(a -> a.getStatus() != Appointment.Status.CANCELLED)
-            .map(Appointment::getTimeSlot)
-            .collect(Collectors.toSet());
+                .findByDoctorIdAndAppointmentDate(doctorId, date)
+                .stream()
+                .filter(a -> a.getStatus() != Appointment.Status.CANCELLED)
+                .map(Appointment::getTimeSlot)
+                .collect(Collectors.toSet());
 
         // Filter out past slots if date is today
         List<String> available = allSlots.stream()
-            .filter(slot -> !bookedSlots.contains(slot))
-            .filter(slot -> !isPastSlot(slot, date))
-            .collect(Collectors.toList());
+                .filter(slot -> !bookedSlots.contains(slot))
+                .filter(slot -> !isPastSlot(slot, date))
+                .collect(Collectors.toList());
 
         log.debug("Doctor {} on {}: {} total slots, {} booked, {} available",
-            doctorId, date, allSlots.size(), bookedSlots.size(), available.size());
+                doctorId, date, allSlots.size(), bookedSlots.size(), available.size());
 
         return available;
     }
@@ -97,14 +97,15 @@ public class AvailabilityService {
      */
     private List<String> getSameDayAlternatives(String doctorId, LocalDate date, String preferredSlot) {
         List<String> available = getAvailableSlots(doctorId, date);
-        if (available.isEmpty()) return Collections.emptyList();
+        if (available.isEmpty())
+            return Collections.emptyList();
 
         // Sort by proximity to preferred slot
         int preferredMinutes = toMinutes(preferredSlot);
         return available.stream()
-            .sorted(Comparator.comparingInt(s -> Math.abs(toMinutes(s) - preferredMinutes)))
-            .limit(3)
-            .collect(Collectors.toList());
+                .sorted(Comparator.comparingInt(s -> Math.abs(toMinutes(s) - preferredMinutes)))
+                .limit(3)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -113,7 +114,7 @@ public class AvailabilityService {
     public List<Map<String, Object>> getNextAvailableDates(String doctorId, LocalDate fromDate, int limit) {
         List<Map<String, Object>> result = new ArrayList<>();
         LocalDate date = fromDate.plusDays(1);
-        LocalDate maxDate = fromDate.plusDays(30);
+        LocalDate maxDate = fromDate.plusDays(90);
 
         while (date.isBefore(maxDate) && result.size() < limit) {
             List<String> slots = getAvailableSlots(doctorId, date);
@@ -135,12 +136,12 @@ public class AvailabilityService {
      */
     public List<String> getBookedSlots(String doctorId, LocalDate date) {
         return appointmentRepository
-            .findByDoctorIdAndAppointmentDate(doctorId, date)
-            .stream()
-            .filter(a -> a.getStatus() != Appointment.Status.CANCELLED)
-            .map(Appointment::getTimeSlot)
-            .sorted()
-            .collect(Collectors.toList());
+                .findByDoctorIdAndAppointmentDate(doctorId, date)
+                .stream()
+                .filter(a -> a.getStatus() != Appointment.Status.CANCELLED)
+                .map(Appointment::getTimeSlot)
+                .sorted()
+                .collect(Collectors.toList());
     }
 
     /**
@@ -148,12 +149,13 @@ public class AvailabilityService {
      */
     public int assignTokenNumber(String doctorId, LocalDate date) {
         long existing = appointmentRepository
-            .countByDoctorIdAndAppointmentDateAndStatus(doctorId, date, Appointment.Status.CONFIRMED);
+                .countByDoctorIdAndAppointmentDateAndStatus(doctorId, date, Appointment.Status.CONFIRMED);
         return (int) existing + 1;
     }
 
     private boolean isPastSlot(String slot, LocalDate date) {
-        if (!date.equals(LocalDate.now())) return false;
+        if (!date.equals(LocalDate.now()))
+            return false;
         java.time.LocalTime now = java.time.LocalTime.now();
         java.time.LocalTime slotTime = java.time.LocalTime.parse(slot);
         return slotTime.isBefore(now);

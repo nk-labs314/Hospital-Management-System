@@ -46,6 +46,15 @@ export function DoctorDashboard() {
         <div className="page-sub">{new Date().toLocaleDateString('en-IN',{weekday:'long',year:'numeric',month:'long',day:'numeric'})}</div>
       </div>
 
+      {doctor && doctor.verificationStatus !== 'APPROVED' && (
+        <div className={`alert ${doctor.verificationStatus === 'REJECTED' ? 'alert-warning' : 'alert-info'} anim-up d100`} style={{ marginBottom:20 }}>
+          <strong>{doctor.verificationStatus === 'REJECTED' ? 'Profile needs updates.' : 'Approval pending.'}</strong>{' '}
+          {doctor.verificationStatus === 'REJECTED'
+            ? `Admin review marked your profile as rejected${doctor.verificationRejectionReason ? `: ${doctor.verificationRejectionReason}` : '.'}`
+            : 'Patients cannot view or book your profile until an admin approves it.'}
+        </div>
+      )}
+
       <div className="stats-grid anim-up d100">
         {[
           {icon:'📅', c:'si-teal',  v: today.length,               l:'Today\'s Patients'},
@@ -98,7 +107,7 @@ export function DoctorDashboard() {
         <div className="card anim-up d300" style={{ marginTop:20 }}>
           <div className="section-title">My Details</div>
           <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'10px 24px' }}>
-            {[['Department',doctor.departmentName],['Specialization',doctor.specialization],['Qualification',doctor.qualification],['Experience',`${doctor.experienceYears} yrs`],['Fee',`₹${doctor.consultationFee}`],['Slot',`${doctor.slotDurationMinutes} min`]].map(([k,v])=>(
+            {[['Department',doctor.departmentName],['Specialization',doctor.specialization],['Qualification',doctor.qualification],['Experience',`${doctor.experienceYears} yrs`],['Fee',`₹${doctor.consultationFee}`],['Slot',`${doctor.slotDurationMinutes} min`],['Verification',doctor.verificationStatus]].map(([k,v])=>(
               <div key={k}>
                 <div style={{ fontSize:11, color:'var(--text-muted)', textTransform:'uppercase', letterSpacing:'0.8px', marginBottom:3 }}>{k}</div>
                 <div style={{ fontSize:13, fontWeight:600, color:'var(--text-secondary)' }}>{v}</div>
@@ -188,6 +197,13 @@ export function DoctorSchedule() {
         <div className="page-title">Schedule Management</div>
         <div className="page-sub">Configure available time slots and view appointments</div>
       </div>
+      {doctor && doctor.verificationStatus !== 'APPROVED' && (
+        <div className={`alert ${doctor.verificationStatus === 'REJECTED' ? 'alert-warning' : 'alert-info'} anim-up d100`} style={{ marginBottom:20 }}>
+          {doctor.verificationStatus === 'REJECTED'
+            ? `Approval was rejected${doctor.verificationRejectionReason ? `: ${doctor.verificationRejectionReason}` : '.'}`
+            : 'Approval is still pending. You can prepare your schedule, but patients cannot book you yet.'}
+        </div>
+      )}
       <div style={{ display:'flex', gap:8, marginBottom:20 }} className="anim-up d100">
         {['schedule','appointments'].map(t=>(
           <button key={t} className={`btn ${tab===t?'btn-outline':'btn-ghost'}`} onClick={()=>setTab(t)}>
@@ -345,6 +361,7 @@ export function AdminDoctors() {
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ firstName:'', lastName:'', email:'', password:'Doctor@123', phone:'', departmentId:'', specialization:'', qualification:'', experienceYears:0, consultationFee:500, bio:'' });
   const [saving, setSaving] = useState(false);
+  const [reviewingId, setReviewingId] = useState(null);
   const set = (k,v) => setForm(f=>({...f,[k]:v}));
 
   const load = () => Promise.all([adminAPI.getDoctors(), adminAPI.getDepts()]).then(([d,dp])=>{ setDoctors(d.data); setDepts(dp.data); });
@@ -360,6 +377,24 @@ export function AdminDoctors() {
     if(!window.confirm('Deactivate doctor?')) return;
     await adminAPI.deactivate(id); toast.success('Deactivated'); load();
   };
+  const updateVerification = async (doctor, status) => {
+    const rejectionReason = status === 'REJECTED'
+      ? window.prompt('Reason for rejection (shown to doctor):', doctor.verificationRejectionReason || '')
+      : '';
+
+    if (status === 'REJECTED' && rejectionReason === null) return;
+
+    setReviewingId(doctor.id);
+    try {
+      await adminAPI.updateDoctorVerification(doctor.id, { status, rejectionReason });
+      toast.success(status === 'APPROVED' ? 'Doctor approved' : 'Doctor rejected');
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed');
+    } finally {
+      setReviewingId(null);
+    }
+  };
 
   return (
     <div>
@@ -370,7 +405,7 @@ export function AdminDoctors() {
       <div className="card anim-up d100">
         <div className="table-wrapper">
           <table>
-            <thead><tr><th>Doctor</th><th>Department</th><th>Specialization</th><th>Exp</th><th>Fee</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Doctor</th><th>Department</th><th>Specialization</th><th>Exp</th><th>Fee</th><th>Access</th><th>Verification</th><th>Action</th></tr></thead>
             <tbody>
               {doctors.map(d=>(
                 <tr key={d.id}>
@@ -383,7 +418,29 @@ export function AdminDoctors() {
                   <td>{d.departmentName}</td><td>{d.specialization}</td>
                   <td>{d.experienceYears}y</td><td>₹{d.consultationFee}</td>
                   <td><span className={`badge ${d.active?'b-active':'b-inactive'}`}>{d.active?'Active':'Inactive'}</span></td>
-                  <td>{d.active&&<button className="btn btn-danger btn-sm" onClick={()=>deactivate(d.id)}>Deactivate</button>}</td>
+                  <td>
+                    <span className={`badge ${verificationBadgeClass(d.verificationStatus)}`}>{d.verificationStatus}</span>
+                    {d.verificationStatus === 'REJECTED' && d.verificationRejectionReason && (
+                      <div style={{ fontSize:11, color:'var(--text-muted)', marginTop:6, maxWidth:180 }}>
+                        {d.verificationRejectionReason}
+                      </div>
+                    )}
+                  </td>
+                  <td>
+                    <div style={{ display:'flex', gap:8, flexWrap:'wrap' }}>
+                      {d.verificationStatus !== 'APPROVED' && (
+                        <button className="btn btn-success btn-sm" disabled={reviewingId === d.id} onClick={()=>updateVerification(d, 'APPROVED')}>
+                          {reviewingId === d.id ? 'Saving...' : 'Approve'}
+                        </button>
+                      )}
+                      {d.verificationStatus !== 'REJECTED' && (
+                        <button className="btn btn-outline btn-sm" disabled={reviewingId === d.id} onClick={()=>updateVerification(d, 'REJECTED')}>
+                          Reject
+                        </button>
+                      )}
+                      {d.active && <button className="btn btn-danger btn-sm" onClick={()=>deactivate(d.id)}>Deactivate</button>}
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -527,3 +584,9 @@ export function AdminAppointments() {
 }
 
 function greet() { const h=new Date().getHours(); return h<12?'Morning':h<17?'Afternoon':'Evening'; }
+
+function verificationBadgeClass(status) {
+  if (status === 'APPROVED') return 'b-active';
+  if (status === 'REJECTED') return 'b-cancelled';
+  return 'b-pending';
+}

@@ -27,6 +27,8 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class AuthController {
 
+    private static final int MAX_CERTIFICATION_IMAGE_DATA_URL_LENGTH = 3_000_000;
+
     private final AuthenticationManager authenticationManager;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
@@ -124,6 +126,9 @@ public class AuthController {
             return ResponseEntity.badRequest().body(Map.of("error", "Email already registered or invalid"));
         }
 
+        String certificationImageDataUrl = parseCertificationImageDataUrl(request.get("certificationImageDataUrl"));
+        String certificationImageName = normalizeOptionalString(request.get("certificationImageName"));
+
         // 1. Create User account with DOCTOR role
         User user = new User();
         user.setFirstName((String) request.get("firstName"));
@@ -144,6 +149,8 @@ public class AuthController {
         doctor.setSpecialization((String) request.get("specialization"));
         doctor.setQualification((String) request.get("qualification"));
         doctor.setBio((String) request.get("bio"));
+        doctor.setCertificationImageName(certificationImageName);
+        doctor.setCertificationImageDataUrl(certificationImageDataUrl);
 
         Object exp = request.get("experienceYears");
         if (exp != null) doctor.setExperienceYears(Integer.parseInt(exp.toString()));
@@ -165,6 +172,10 @@ public class AuthController {
         doctor.setSlotDurationMinutes(30);
         doctor.setConsultationFee(500.0);
         doctor.setActive(true);
+        doctor.setVerificationStatus(Doctor.VerificationStatus.PENDING);
+        doctor.setVerificationReviewedAt(null);
+        doctor.setVerificationReviewedByAdminId(null);
+        doctor.setVerificationRejectionReason(null);
 
         doctorRepository.save(doctor);
 
@@ -174,6 +185,32 @@ public class AuthController {
             token, savedUser.getId(), savedUser.getEmail(),
             savedUser.getFullName(), savedUser.getRole().name()
         ));
+    }
+
+    private String parseCertificationImageDataUrl(Object rawValue) {
+        String dataUrl = normalizeOptionalString(rawValue);
+        if (dataUrl == null) {
+            return null;
+        }
+
+        if (!dataUrl.startsWith("data:image/")) {
+            throw new RuntimeException("Only image uploads are supported for doctor certifications");
+        }
+
+        if (dataUrl.length() > MAX_CERTIFICATION_IMAGE_DATA_URL_LENGTH) {
+            throw new RuntimeException("Certification image must be 2 MB or smaller");
+        }
+
+        return dataUrl;
+    }
+
+    private String normalizeOptionalString(Object rawValue) {
+        if (rawValue == null) {
+            return null;
+        }
+
+        String value = rawValue.toString().trim();
+        return value.isEmpty() ? null : value;
     }
 
     private List<String> generateDefaultSlots(String start, String end, int duration) {

@@ -6,8 +6,9 @@ import java.util.List;
 import java.util.Optional;
 
 public interface DoctorRepository extends MongoRepository<Doctor, String> {
-    List<Doctor> findByDepartmentIdAndActiveTrue(String departmentId);
-    List<Doctor> findByActiveTrue();
+    List<Doctor> findByDepartmentIdAndActiveTrueAndVerificationStatus(String departmentId, Doctor.VerificationStatus verificationStatus);
+    List<Doctor> findByActiveTrueAndVerificationStatus(Doctor.VerificationStatus verificationStatus);
+    Optional<Doctor> findByIdAndActiveTrueAndVerificationStatus(String id, Doctor.VerificationStatus verificationStatus);
     Optional<Doctor> findByEmail(String email);
     Optional<Doctor> findByUserId(String userId);
 }

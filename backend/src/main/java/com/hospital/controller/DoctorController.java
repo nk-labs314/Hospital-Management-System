@@ -27,7 +27,11 @@ class DepartmentController {
 
     @GetMapping("/{id}/doctors")
     public ResponseEntity<List<Doctor>> getDoctorsByDepartment(@PathVariable String id) {
-        return ResponseEntity.ok(doctorRepository.findByDepartmentIdAndActiveTrue(id));
+        return ResponseEntity.ok(
+            doctorRepository.findByDepartmentIdAndActiveTrueAndVerificationStatus(
+                id, Doctor.VerificationStatus.APPROVED
+            )
+        );
     }
 }
 
@@ -41,13 +45,15 @@ class DoctorController {
     // Public: list all doctors
     @GetMapping("/public")
     public ResponseEntity<List<Doctor>> getAllDoctors() {
-        return ResponseEntity.ok(doctorRepository.findByActiveTrue());
+        return ResponseEntity.ok(
+            doctorRepository.findByActiveTrueAndVerificationStatus(Doctor.VerificationStatus.APPROVED)
+        );
     }
 
     // Public: doctor profile
     @GetMapping("/public/{id}")
     public ResponseEntity<?> getDoctorById(@PathVariable String id) {
-        return doctorRepository.findById(id)
+        return doctorRepository.findByIdAndActiveTrueAndVerificationStatus(id, Doctor.VerificationStatus.APPROVED)
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
@@ -55,7 +61,11 @@ class DoctorController {
     // Public: doctors by department
     @GetMapping("/public/department/{deptId}")
     public ResponseEntity<List<Doctor>> getDoctorsByDepartment(@PathVariable String deptId) {
-        return ResponseEntity.ok(doctorRepository.findByDepartmentIdAndActiveTrue(deptId));
+        return ResponseEntity.ok(
+            doctorRepository.findByDepartmentIdAndActiveTrueAndVerificationStatus(
+                deptId, Doctor.VerificationStatus.APPROVED
+            )
+        );
     }
 
     // Doctor: get own profile (linked by userId)

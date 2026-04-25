@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
 
@@ -39,6 +40,7 @@ public class AppointmentService {
         // Validate doctor
         Doctor doctor = doctorRepository.findById(doctorId)
             .orElseThrow(() -> new RuntimeException("Doctor not found"));
+        validateDoctorCanAcceptAppointments(doctor);
 
         // Check availability
         if (!availabilityService.isSlotAvailable(doctorId, date, timeSlot)) {
@@ -103,6 +105,10 @@ public class AppointmentService {
         Appointment appointment = appointmentRepository.findById(appointmentId)
             .orElseThrow(() -> new RuntimeException("Appointment not found"));
 
+        if (status == Appointment.Status.CANCELLED) {
+            validateCancellationWindow(appointment);
+        }
+
         appointment.setStatus(status);
         appointment.setUpdatedAt(LocalDateTime.now());
 
@@ -118,12 +124,27 @@ public class AppointmentService {
         return appointmentRepository.save(appointment);
     }
 
+    private void validateCancellationWindow(Appointment appointment) {
+        LocalDateTime appointmentStart = LocalDateTime.of(
+            appointment.getAppointmentDate(),
+            LocalTime.parse(appointment.getTimeSlot())
+        );
+
+        if (!appointmentStart.isAfter(LocalDateTime.now().plusMinutes(30))) {
+            throw new RuntimeException("Appointments can only be cancelled more than 30 minutes before the scheduled time");
+        }
+    }
+
     public Appointment getAppointmentById(String id) {
         return appointmentRepository.findById(id)
             .orElseThrow(() -> new RuntimeException("Appointment not found"));
     }
 
     public Map<String, Object> getSlotAvailability(String doctorId, LocalDate date) {
+        Doctor doctor = doctorRepository.findById(doctorId)
+            .orElseThrow(() -> new RuntimeException("Doctor not found"));
+        validateDoctorCanAcceptAppointments(doctor);
+
         return Map.of(
             "doctorId", doctorId,
             "date", date,
@@ -131,6 +152,15 @@ public class AppointmentService {
             "bookedSlots", availabilityService.getBookedSlots(doctorId, date),
             "nextAvailableDates", availabilityService.getNextAvailableDates(doctorId, date, 5)
         );
+    }
+
+    private void validateDoctorCanAcceptAppointments(Doctor doctor) {
+        if (!doctor.isActive()) {
+            throw new RuntimeException("Doctor is not currently available for appointments");
+        }
+        if (doctor.getVerificationStatus() != Doctor.VerificationStatus.APPROVED) {
+            throw new RuntimeException("Doctor is pending admin approval and cannot accept appointments yet");
+        }
     }
 
     public Map<String, Object> getDoctorDashboardStats(String doctorId) {

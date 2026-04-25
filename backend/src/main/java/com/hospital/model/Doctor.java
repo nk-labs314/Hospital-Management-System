@@ -1,11 +1,13 @@
 package com.hospital.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +35,10 @@ public class Doctor {
     private double consultationFee;
     private String bio;
     private String profileImage;
+    private String certificationImageName;
+
+    @JsonIgnore
+    private String certificationImageDataUrl;
 
     // Availability: Map<DayOfWeek, List<TimeSlot>>
     // e.g. { "MONDAY": ["09:00", "09:30", ...], "TUESDAY": [...] }
@@ -43,8 +49,18 @@ public class Doctor {
 
     private int slotDurationMinutes = 30;
     private boolean active = true;
+    private VerificationStatus verificationStatus = VerificationStatus.APPROVED;
+    private LocalDateTime verificationReviewedAt;
+    private String verificationReviewedByAdminId;
+    private String verificationRejectionReason;
     private double rating = 0.0;
     private int totalRatings = 0;
+
+    public enum VerificationStatus {
+        PENDING,
+        APPROVED,
+        REJECTED
+    }
 
     public String getFullName() {
         return "Dr. " + firstName + " " + lastName;

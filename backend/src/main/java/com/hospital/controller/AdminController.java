@@ -10,9 +10,11 @@ import com.hospital.service.AppointmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -75,7 +77,8 @@ public class AdminController {
     }
 
     @PostMapping("/doctors")
-    public ResponseEntity<?> createDoctor(@RequestBody Map<String, Object> body) {
+    public ResponseEntity<?> createDoctor(@RequestBody Map<String, Object> body,
+                                          Authentication authentication) {
         // Create user account
         User user = new User();
         user.setFirstName((String) body.get("firstName"));
@@ -101,6 +104,10 @@ public class AdminController {
         doctor.setConsultationFee(body.get("consultationFee") != null
             ? Double.parseDouble(body.get("consultationFee").toString()) : 0.0);
         doctor.setBio((String) body.get("bio"));
+        doctor.setVerificationStatus(Doctor.VerificationStatus.APPROVED);
+        doctor.setVerificationReviewedAt(LocalDateTime.now());
+        doctor.setVerificationReviewedByAdminId(resolveAdminUserId(authentication));
+        doctor.setVerificationRejectionReason(null);
 
         // Resolve department name
         departmentRepository.findById((String) body.get("departmentId"))
@@ -108,6 +115,24 @@ public class AdminController {
 
         Doctor saved = doctorRepository.save(doctor);
         return ResponseEntity.ok(saved);
+    }
+
+    @PatchMapping("/doctors/{id}/verification")
+    public ResponseEntity<?> updateDoctorVerification(@PathVariable String id,
+                                                      @RequestBody Map<String, String> body,
+                                                      Authentication authentication) {
+        Doctor.VerificationStatus status = Doctor.VerificationStatus.valueOf(body.get("status"));
+
+        return doctorRepository.findById(id).map(doctor -> {
+            doctor.setVerificationStatus(status);
+            doctor.setVerificationReviewedAt(LocalDateTime.now());
+            doctor.setVerificationReviewedByAdminId(resolveAdminUserId(authentication));
+            doctor.setVerificationRejectionReason(
+                status == Doctor.VerificationStatus.REJECTED ? body.get("rejectionReason") : null
+            );
+            doctorRepository.save(doctor);
+            return ResponseEntity.ok(doctor);
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/doctors/{id}")
@@ -129,5 +154,15 @@ public class AdminController {
     @GetMapping("/departments")
     public ResponseEntity<?> getAllDepartments() {
         return ResponseEntity.ok(departmentRepository.findAll());
+    }
+
+    private String resolveAdminUserId(Authentication authentication) {
+        if (authentication == null) {
+            return null;
+        }
+
+        return userRepository.findByEmail(authentication.getName())
+            .map(User::getId)
+            .orElse(null);
     }
 }

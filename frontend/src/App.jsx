@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
-import { RolePage, LoginPage, PatientRegisterPage, DoctorRegisterPage } from './pages/AuthPages';
+import { RolePage, LoginPage, RegisterPage, DoctorRegisterPage } from './pages/AuthPages';
 import { PatientDashboard, MyAppointments, MedicalRecords, ProfilePage } from './pages/PatientPages';
 import BookAppointment from './pages/BookAppointment';
 import { DoctorDashboard, DoctorSchedule, AdminDashboard, AdminDoctors, AdminPatients, AdminAppointments } from './pages/OtherPages';
@@ -40,7 +40,7 @@ function AppRoutes() {
       <Route path="/"          element={<RootRedirect />} />
       <Route path="/welcome"   element={<RolePage />} />
       <Route path="/login"     element={<LoginPage />} />
-      <Route path="/register"  element={<PatientRegisterPage />} />
+      <Route path="/register"  element={<RegisterPage />} />
       <Route path="/register/doctor" element={<DoctorRegisterPage />} />
 
       {/* Patient */}

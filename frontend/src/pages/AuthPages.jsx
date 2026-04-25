@@ -207,8 +207,8 @@ export function LoginPage() {
 
   const roleConfig = {
     patient: { label: 'Patient', color: 'var(--teal)', border: 'var(--teal-border)', glow: 'var(--teal-glow)', icon: '🧑‍⚕️' },
-    doctor:  { label: 'Doctor',  color: '#60a5fa', border: 'rgba(96,165,250,0.25)', glow: 'rgba(96,165,250,0.08)', icon: '👨‍⚕️' },
-    admin:   { label: 'Admin',   color: '#c084fc', border: 'rgba(192,132,252,0.25)', glow: 'rgba(168,85,247,0.08)', icon: '🔐' },
+    doctor: { label: 'Doctor', color: '#60a5fa', border: 'rgba(96,165,250,0.25)', glow: 'rgba(96,165,250,0.08)', icon: '👨‍⚕️' },
+    admin: { label: 'Admin', color: '#c084fc', border: 'rgba(192,132,252,0.25)', glow: 'rgba(168,85,247,0.08)', icon: '🔐' },
   }[role] || {};
 
   const handleSubmit = async (e) => {
@@ -218,7 +218,7 @@ export function LoginPage() {
       const { data } = await authAPI.login(form);
       login({ id: data.id, email: data.email, fullName: data.fullName, role: data.role }, data.token);
       toast.success(`Welcome back, ${data.fullName.split(' ')[0]}!`);
-      if (data.role === 'ADMIN')  navigate('/admin');
+      if (data.role === 'ADMIN') navigate('/admin');
       else if (data.role === 'DOCTOR') navigate('/doctor');
       else navigate('/dashboard');
     } catch (err) {
@@ -255,12 +255,12 @@ export function LoginPage() {
             <div className="form-group">
               <label className="form-label">Email Address</label>
               <input className="form-control" type="email" placeholder="you@example.com"
-                value={form.email} onChange={e => setForm(f => ({...f, email: e.target.value}))} required />
+                value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
             </div>
             <div className="form-group">
               <label className="form-label">Password</label>
               <input className="form-control" type="password" placeholder="••••••••"
-                value={form.password} onChange={e => setForm(f => ({...f, password: e.target.value}))} required />
+                value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
             </div>
             <button className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center', marginTop: 4 }} disabled={loading}>
               {loading ? <><span className="spinner" style={{ borderTopColor: 'var(--bg-base)' }} /> Signing in...</> : 'Sign In →'}
@@ -284,7 +284,7 @@ export function LoginPage() {
             <div style={{ fontWeight: 700, color: 'var(--text-secondary)', marginBottom: 6 }}>🔑 Demo Credentials</div>
             {role === 'admin' && <div>admin@hospital.com / Admin@123</div>}
             {role === 'doctor' && <div>dr.sharma@hospital.com / Doctor@123</div>}
-            {role === 'patient' && <div>Register a new account to get started</div>}
+            {role === 'patient' && <div>test@gmail.com / 123456</div>}
           </div>
         </div>
       </div>
@@ -296,11 +296,11 @@ export function LoginPage() {
    PATIENT REGISTRATION
 ═══════════════════════════════════════════ */
 export function PatientRegisterPage() {
-  const [form, setForm] = useState({ firstName:'', lastName:'', email:'', password:'', phone:'', dateOfBirth:'', gender:'', bloodGroup:'', address:'' });
+  const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '', dateOfBirth: '', gender: '', bloodGroup: '', address: '' });
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
-  const set = (k, v) => setForm(f => ({...f, [k]: v}));
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setLoading(true);
@@ -337,53 +337,53 @@ export function PatientRegisterPage() {
             <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">First Name</label>
-                <input className="form-control" placeholder="John" value={form.firstName} onChange={e=>set('firstName',e.target.value)} required />
+                <input className="form-control" placeholder="John" value={form.firstName} onChange={e => set('firstName', e.target.value)} required />
               </div>
               <div className="form-group">
                 <label className="form-label">Last Name</label>
-                <input className="form-control" placeholder="Doe" value={form.lastName} onChange={e=>set('lastName',e.target.value)} required />
+                <input className="form-control" placeholder="Doe" value={form.lastName} onChange={e => set('lastName', e.target.value)} required />
               </div>
             </div>
             <div className="form-group">
               <label className="form-label">Email Address</label>
-              <input className="form-control" type="email" placeholder="you@example.com" value={form.email} onChange={e=>set('email',e.target.value)} required />
+              <input className="form-control" type="email" placeholder="you@example.com" value={form.email} onChange={e => set('email', e.target.value)} required />
             </div>
             <div className="form-group">
               <label className="form-label">Password</label>
-              <input className="form-control" type="password" placeholder="Minimum 6 characters" value={form.password} onChange={e=>set('password',e.target.value)} required minLength={6} />
+              <input className="form-control" type="password" placeholder="Minimum 6 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} />
             </div>
             <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">Phone</label>
-                <input className="form-control" placeholder="9876543210" value={form.phone} onChange={e=>set('phone',e.target.value)} />
+                <input className="form-control" placeholder="9876543210" value={form.phone} onChange={e => set('phone', e.target.value)} />
               </div>
               <div className="form-group">
                 <label className="form-label">Date of Birth</label>
-                <input className="form-control" type="date" value={form.dateOfBirth} onChange={e=>set('dateOfBirth',e.target.value)} />
+                <input className="form-control" type="date" value={form.dateOfBirth} onChange={e => set('dateOfBirth', e.target.value)} />
               </div>
             </div>
             <div className="form-grid">
               <div className="form-group">
                 <label className="form-label">Gender</label>
-                <select className="form-control" value={form.gender} onChange={e=>set('gender',e.target.value)}>
+                <select className="form-control" value={form.gender} onChange={e => set('gender', e.target.value)}>
                   <option value="">Select</option>
                   <option>Male</option><option>Female</option><option>Other</option>
                 </select>
               </div>
               <div className="form-group">
                 <label className="form-label">Blood Group</label>
-                <select className="form-control" value={form.bloodGroup} onChange={e=>set('bloodGroup',e.target.value)}>
+                <select className="form-control" value={form.bloodGroup} onChange={e => set('bloodGroup', e.target.value)}>
                   <option value="">Select</option>
-                  {['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(b=><option key={b}>{b}</option>)}
+                  {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map(b => <option key={b}>{b}</option>)}
                 </select>
               </div>
             </div>
             <div className="form-group">
               <label className="form-label">Address</label>
-              <textarea className="form-control" rows={2} placeholder="Your address" value={form.address} onChange={e=>set('address',e.target.value)} />
+              <textarea className="form-control" rows={2} placeholder="Your address" value={form.address} onChange={e => set('address', e.target.value)} />
             </div>
             <button className="btn btn-primary btn-lg" style={{ width: '100%', justifyContent: 'center' }} disabled={loading}>
-              {loading ? <><span className="spinner" style={{borderTopColor:'var(--bg-base)'}} /> Creating account...</> : 'Create Patient Account →'}
+              {loading ? <><span className="spinner" style={{ borderTopColor: 'var(--bg-base)' }} /> Creating account...</> : 'Create Patient Account →'}
             </button>
           </form>
         </div>
@@ -395,12 +395,18 @@ export function PatientRegisterPage() {
 /* ═══════════════════════════════════════════
    DOCTOR SELF-REGISTRATION
 ═══════════════════════════════════════════ */
+export function RegisterPage() {
+  const role = new URLSearchParams(window.location.search).get('role');
+  return role === 'doctor' ? <DoctorRegisterPage /> : <PatientRegisterPage />;
+}
+
 export function DoctorRegisterPage() {
   const [step, setStep] = useState(1); // 1 = account, 2 = professional
   const [form, setForm] = useState({
-    firstName:'', lastName:'', email:'', password:'', phone:'',
-    specialization:'', qualification:'', experienceYears:'', bio:'',
-    departmentId:'',
+    firstName: '', lastName: '', email: '', password: '', phone: '',
+    specialization: '', qualification: '', experienceYears: '', bio: '',
+    departmentId: '',
+    certificationImageName: '', certificationImageDataUrl: '',
   });
   const [depts, setDepts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -411,14 +417,55 @@ export function DoctorRegisterPage() {
     import('../services/api').then(m => m.deptAPI.getAll().then(r => setDepts(r.data)));
   }, []);
 
-  const set = (k, v) => setForm(f => ({...f, [k]: v}));
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleCertificationChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) {
+      set('certificationImageName', '');
+      set('certificationImageDataUrl', '');
+      return;
+    }
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Upload a certification image file');
+      event.target.value = '';
+      set('certificationImageName', '');
+      set('certificationImageDataUrl', '');
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      toast.error('Certification image must be 2 MB or smaller');
+      event.target.value = '';
+      set('certificationImageName', '');
+      set('certificationImageDataUrl', '');
+      return;
+    }
+
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      set('certificationImageName', file.name);
+      set('certificationImageDataUrl', dataUrl);
+    } catch {
+      toast.error('Could not read the certification image');
+      event.target.value = '';
+      set('certificationImageName', '');
+      set('certificationImageDataUrl', '');
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault(); setLoading(true);
+    if (!form.certificationImageDataUrl) {
+      toast.error('Upload your degree or certification image');
+      setLoading(false);
+      return;
+    }
     try {
       const { data } = await authAPI.registerDoctor(form);
       login({ id: data.id, email: data.email, fullName: data.fullName, role: data.role }, data.token);
-      toast.success('Doctor account created! Welcome, Dr. ' + form.firstName);
+      toast.success('Doctor account submitted for admin review.');
       navigate('/doctor');
     } catch (err) { toast.error(err.response?.data?.error || 'Registration failed'); }
     finally { setLoading(false); }
@@ -465,24 +512,24 @@ export function DoctorRegisterPage() {
                 <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">First Name</label>
-                    <input className="form-control" placeholder="Rajesh" value={form.firstName} onChange={e=>set('firstName',e.target.value)} required />
+                    <input className="form-control" placeholder="Rajesh" value={form.firstName} onChange={e => set('firstName', e.target.value)} required />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Last Name</label>
-                    <input className="form-control" placeholder="Sharma" value={form.lastName} onChange={e=>set('lastName',e.target.value)} required />
+                    <input className="form-control" placeholder="Sharma" value={form.lastName} onChange={e => set('lastName', e.target.value)} required />
                   </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Work Email</label>
-                  <input className="form-control" type="email" placeholder="dr.you@hospital.com" value={form.email} onChange={e=>set('email',e.target.value)} required />
+                  <input className="form-control" type="email" placeholder="dr.you@hospital.com" value={form.email} onChange={e => set('email', e.target.value)} required />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Password</label>
-                  <input className="form-control" type="password" placeholder="Minimum 6 characters" value={form.password} onChange={e=>set('password',e.target.value)} required minLength={6} />
+                  <input className="form-control" type="password" placeholder="Minimum 6 characters" value={form.password} onChange={e => set('password', e.target.value)} required minLength={6} />
                 </div>
                 <div className="form-group">
                   <label className="form-label">Phone</label>
-                  <input className="form-control" placeholder="9876543210" value={form.phone} onChange={e=>set('phone',e.target.value)} />
+                  <input className="form-control" placeholder="9876543210" value={form.phone} onChange={e => set('phone', e.target.value)} />
                 </div>
                 <button className="btn btn-lg" type="submit" style={{
                   width: '100%', justifyContent: 'center',
@@ -498,32 +545,44 @@ export function DoctorRegisterPage() {
               <>
                 <div className="form-group">
                   <label className="form-label">Department / Speciality</label>
-                  <select className="form-control" value={form.departmentId} onChange={e=>set('departmentId',e.target.value)} required>
+                  <select className="form-control" value={form.departmentId} onChange={e => set('departmentId', e.target.value)} required>
                     <option value="">Select your department</option>
                     {depts.map(d => <option key={d.id} value={d.id}>{d.icon} {d.name}</option>)}
                   </select>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Specialization</label>
-                  <input className="form-control" placeholder="e.g. Interventional Cardiology" value={form.specialization} onChange={e=>set('specialization',e.target.value)} required />
+                  <input className="form-control" placeholder="e.g. Interventional Cardiology" value={form.specialization} onChange={e => set('specialization', e.target.value)} required />
                 </div>
                 <div className="form-grid">
                   <div className="form-group">
                     <label className="form-label">Qualification</label>
-                    <input className="form-control" placeholder="MBBS, MD..." value={form.qualification} onChange={e=>set('qualification',e.target.value)} required />
+                    <input className="form-control" placeholder="MBBS, MD..." value={form.qualification} onChange={e => set('qualification', e.target.value)} required />
                   </div>
                   <div className="form-group">
                     <label className="form-label">Experience (years)</label>
-                    <input className="form-control" type="number" min="0" placeholder="5" value={form.experienceYears} onChange={e=>set('experienceYears',e.target.value)} />
+                    <input className="form-control" type="number" min="0" placeholder="5" value={form.experienceYears} onChange={e => set('experienceYears', e.target.value)} />
                   </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Short Bio</label>
-                  <textarea className="form-control" rows={3} placeholder="Tell patients a bit about yourself..." value={form.bio} onChange={e=>set('bio',e.target.value)} />
+                  <textarea className="form-control" rows={3} placeholder="Tell patients a bit about yourself..." value={form.bio} onChange={e => set('bio', e.target.value)} />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Degree / Certification Image</label>
+                  <input className="form-control" type="file" accept="image/png,image/jpeg,image/webp" onChange={handleCertificationChange} required />
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+                    Upload a JPG, PNG, or WebP image up to 2 MB.
+                  </div>
+                  {form.certificationImageName && (
+                    <div style={{ fontSize: 12, color: '#60a5fa', marginTop: 8 }}>
+                      Selected: {form.certificationImageName}
+                    </div>
+                  )}
                 </div>
 
                 <div className="alert alert-info" style={{ marginBottom: 18, fontSize: 12 }}>
-                  ℹ️ Your account will be reviewed by admin before patients can book with you. You can set your schedule after login.
+                  ℹ️ Your profile stays hidden from patients until an admin approves it. You can still log in and prepare your schedule.
                 </div>
 
                 <div style={{ display: 'flex', gap: 10 }}>
@@ -535,7 +594,7 @@ export function DoctorRegisterPage() {
                     background: 'rgba(96,165,250,0.15)', border: '1px solid rgba(96,165,250,0.35)',
                     color: '#60a5fa',
                   }} disabled={loading}>
-                    {loading ? <><span className="spinner" style={{borderTopColor:'#60a5fa'}} /> Registering...</> : '✓ Create Doctor Account'}
+                    {loading ? <><span className="spinner" style={{ borderTopColor: '#60a5fa' }} /> Registering...</> : '✓ Create Doctor Account'}
                   </button>
                 </div>
               </>
@@ -545,4 +604,13 @@ export function DoctorRegisterPage() {
       </div>
     </AuthBg>
   );
+}
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
 }

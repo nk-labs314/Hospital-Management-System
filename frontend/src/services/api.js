@@ -33,6 +33,7 @@ export const adminAPI = {
   getPatients:   () => axios.get('/api/admin/patients'),
   getDoctors:    () => axios.get('/api/admin/doctors'),
   createDoctor:  (d) => axios.post('/api/admin/doctors', d),
+  updateDoctorVerification: (id, d) => axios.patch(`/api/admin/doctors/${id}/verification`, d),
   deactivate:    (id) => axios.delete(`/api/admin/doctors/${id}`),
   toggleUser:    (id) => axios.patch(`/api/admin/users/${id}/toggle`),
   getAppointments:()  => axios.get('/api/admin/appointments'),

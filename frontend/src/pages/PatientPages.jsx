@@ -89,10 +89,14 @@ export function MyAppointments() {
 
   const doCancel = async () => {
     if (!reason.trim()) { toast.error('Please enter a reason'); return; }
-    await apptAPI.cancel(cancelTarget.id, reason);
-    toast.success('Appointment cancelled');
-    setCancelTarget(null); setReason('');
-    load();
+    try {
+      await apptAPI.cancel(cancelTarget.id, reason);
+      toast.success('Appointment cancelled');
+      setCancelTarget(null); setReason('');
+      load();
+    } catch (error) {
+      toast.error(error?.response?.data?.error || 'This appointment can no longer be cancelled online');
+    }
   };
 
   return (
@@ -129,8 +133,13 @@ export function MyAppointments() {
                 </div>
                 <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:8 }}>
                   <span className={`badge ${SB[apt.status]}`}>{apt.status}</span>
-                  {apt.status==='CONFIRMED' && (
+                  {apt.status==='CONFIRMED' && isCancelable(apt) && (
                     <button className="btn btn-danger btn-sm" onClick={()=>setCancelTarget(apt)}>Cancel</button>
+                  )}
+                  {apt.status==='CONFIRMED' && !isCancelable(apt) && (
+                    <span style={{ fontSize:12, color:'var(--text-muted)', textAlign:'right', maxWidth:180 }}>
+                      Cancellation closes 30 minutes before the appointment
+                    </span>
                   )}
                 </div>
               </div>
@@ -319,4 +328,9 @@ function StatCard({ icon, color, val, label }) {
 function greeting() {
   const h = new Date().getHours();
   return h<12?'Morning':h<17?'Afternoon':'Evening';
+}
+
+function isCancelable(appointment) {
+  const appointmentTime = new Date(`${appointment.appointmentDate}T${appointment.timeSlot}:00`);
+  return appointmentTime.getTime() - Date.now() > 30 * 60 * 1000;
 }

@@ -12,6 +12,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -140,6 +141,8 @@ public class DataSeeder implements CommandLineRunner {
         doctor.setConsultationFee(fee);
         doctor.setWeeklySchedule(schedule);
         doctor.setBio("Experienced specialist with " + exp + " years in " + spec);
+        doctor.setVerificationStatus(Doctor.VerificationStatus.APPROVED);
+        doctor.setVerificationReviewedAt(LocalDateTime.now());
         doctorRepository.save(doctor);
     }
 
